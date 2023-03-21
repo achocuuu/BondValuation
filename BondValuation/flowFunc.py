@@ -11,6 +11,7 @@ import datetime as dt
 import mktConventions as mktConv
 import numpy as np
 import flowFunc as fl
+import math
 
 # Busca el feriado de un vector de fechas y hace el shift de la fecha según su business convention.
 def paymentConventionShift(fecha, calendarios, paymentConvention):
@@ -60,9 +61,9 @@ def paymentCoupons(fechaVencimiento, fechaEmision, paymentComposition):
     if paymentComposition == "Monthly" or paymentComposition == "Monthly (28/360)":
         cantPagos = paymentsInYear * yearDiff + monthDiff #Cantidad de pagos en un año * cantidad de años
     elif paymentComposition == "Quarterly" or paymentComposition == "Quarterly (91/360)":
-        cantPagos = paymentsInYear * yearDiff + np.round(monthDiff / 4.00, 0)
+        cantPagos = paymentsInYear * yearDiff + math.ceil(monthDiff / 4.00)
     elif paymentComposition == "Semi-Annual" or paymentComposition == "Semi-Annual (182/360)":
-        cantPagos = paymentsInYear * yearDiff + np.round(monthDiff / 6.00,0)
+        cantPagos = paymentsInYear * yearDiff + math.ceil(monthDiff / 6.00)
     elif paymentComposition == "None":
         cantPagos = 1
     else:
@@ -75,16 +76,20 @@ def fechasFlujos(fechaVencimiento, valDate, paymentComposition, paymentConventio
     
     fechaFinal = [fechaVencimiento]
     fechaInicial = [fl.paymentConventionShift(fl.shiftDate(fechaFinal[0], paymentComposition), holidays, paymentConvention)]
-  
+    fechaFinalAdj = []
+    fechaInicialAdj = []
     for i in range(intCantPagos):
         if i>0:
             fechaFinal.append(fechaInicial[i-1])
             fechaInicial.append(fl.shiftDate(fechaFinal[i], paymentComposition))    
-                
-    fechaInicial.sort()
-    fechaFinal.sort()
+        
+        fechaFinalAdj.append(fl.paymentConventionShift(fechaFinal[i], holidays, paymentConvention))
+        fechaInicialAdj.append(fl.paymentConventionShift(fechaInicial[i], holidays, paymentConvention))        
     
-    return np.column_stack((fechaInicial,fechaFinal))
+    fechaInicialAdj.sort()
+    fechaFinalAdj.sort()
+    
+    return np.column_stack((fechaInicialAdj,fechaFinalAdj))
 
 #m = base/periodo e.g 360/182 (yield compound) n = days / base
 def df(n, m, rate, dfConvention):
